@@ -81,10 +81,12 @@ module.exports = class Parser
 
       when "list_item_start"
         body = ""
-        if @token.hasPar
-          body += @tok()  while @next().type isnt "list_item_end"
-        else
-          body += (if @token.type is "text" then @parseText() else @tok())  while @next().type isnt "list_item_end"
+        body += (if @token.type is "text" then @parseText() else @tok())  while @next().type isnt "list_item_end"
+        "<li>" + body + "</li>\n"
+
+      when "loose_item_start"
+        body = ""
+        body += @tok()  while @next().type isnt "list_item_end"
         "<li>" + body + "</li>\n"
 
       when "html"

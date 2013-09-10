@@ -136,7 +136,8 @@ module.exports = class InlineLexer
       # TEXT
       if cap = inline.text.exec(src)
         src = src.substring(cap[0].length)
-        out += _.unsafeHtmlEscape(@smartypants(cap[0]), true)
+        # out += _.unsafeHtmlEscape(@smartypants(cap[0]), true)
+        out += _.unsafeHtmlEscape(cap[0], true)
         continue
 
       throw new Error("Infinite loop on byte: " + src.charCodeAt(0))  if src

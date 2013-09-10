@@ -110,21 +110,20 @@ module.exports = class Lexer
         continue
 
       # LISTS
-      if ~src.search block.listStart
-        bullet = null
+      if ((cap = block.ol.exec src) and @tokens.push {type: "list_start", ordered: true}) or
+          ((cap = block.ul.exec src) and @tokens.push {type: "list_start"})
+        listText = cap[0]
+        src = src.substring listText.length
+        block.item.lastIndex = 0
 
-        while cap = src.match block.item
-          src = src.substr cap[0].length
+        while cap = block.item.exec listText
+          lastIndex = block.item.lastIndex
 
-          cap[LI_BULLET] = 1 if cap[LI_BULLET].length > 1
-          if cap[LI_BULLET] isnt bullet
-            @tokens.push type: "list_end" if bullet?
-            bullet = cap[LI_BULLET]
-            @tokens.push
-              type: "list_start"
-              ordered: bullet is 1
+          if cap[LI_PAR]
+            @tokens.push type: "loose_item_start"
+          else
+            @tokens.push type: "list_item_start"
 
-          @tokens.push type: "list_item_start", hasPar: !!cap[LI_PAR]
           @token cap[LI_TEXT]
           if (indent = cap[LI_PAR].match regexIndentation) and indent = indent[1].length
             indent = maxIndent if indent > maxIndent = cap[LI_SPACE].length + 4
@@ -132,7 +131,9 @@ module.exports = class Lexer
           @token cap[LI_PAR]
           @tokens.push type: "list_item_end"
 
-        @tokens.push type: "list_end" if bullet?
+          block.item.lastIndex = lastIndex
+
+        @tokens.push type: "list_end"
         continue
 
       # HTML
