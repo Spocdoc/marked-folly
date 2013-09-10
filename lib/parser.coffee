@@ -1,17 +1,15 @@
 InlineLexer = require './inline_lexer'
-{escape} = require './utils'
+u = require './utils'
 
 module.exports = class Parser
-  constructor: (@options={}) ->
+  constructor: () ->
     @tokens = []
     @token = null
 
-  @parse: (src, options) ->
-    parser = new Parser(options)
-    parser.parse src
+  @parse: (src) -> (new Parser).parse src
 
   parse: (src) ->
-    @inline = new InlineLexer(src.links, @options)
+    @inline = new InlineLexer src.links
     @tokens = src.reverse()
     out = ""
     out += @tok()  while @next()
@@ -33,11 +31,11 @@ module.exports = class Parser
       when "space"
         ""
       when "hr"
-        "<hr>\n"
+        "<hr />\n"
       when "heading"
         "<h" + @token.depth + ">" + @inline.output(@token.text) + "</h" + @token.depth + ">\n"
       when "code"
-        @token.text = escape(@token.text, true)  unless @token.escaped
+        @token.text = u.escape(@token.text, true)  unless @token.escaped
         "<pre><code" + ((if @token.lang then " class=\"lang-" + @token.lang + "\"" else "")) + ">" + @token.text + "</code></pre>\n"
       when "table"
         body = ""
@@ -85,7 +83,7 @@ module.exports = class Parser
         body += @tok()  while @next().type isnt "list_item_end"
         "<li>" + body + "</li>\n"
       when "html"
-        (if not @token.pre and not @options['pedantic'] then @inline.output(@token.text) else @token.text)
+        (if not @token.pre then @inline.output(@token.text) else @token.text)
       when "paragraph"
         "<p>" + @inline.output(@token.text) + "</p>\n"
       when "text"

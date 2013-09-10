@@ -6,13 +6,8 @@ noOptions = {}
 
 ###
 marked.defaults =
-  noGfm: false
-  noTables: false
-  breaks: false
-  pedantic: false
   sanitize: false
   smartLists: false
-  smartypants: false
 ###
 
 # WARN: may throw

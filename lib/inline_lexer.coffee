@@ -1,36 +1,41 @@
 inline = require './inline'
-{escape} = require './utils'
+u = require './utils'
 
 module.exports = class InlineLexer
-  constructor: (@links, @options={}) ->
-    @rules = inline.normal
+  constructor: (@links) ->
     throw new Error("Tokens array requires a `links` property.")  unless @links
-    unless @options['noGfm']
-      if @options['breaks']
-        @rules = inline.breaks
-      else
-        @rules = inline.gfm
-    else @rules = inline.pedantic  if @options['pedantic']
 
-  @output: (src, links, options) ->
-    inline = new InlineLexer(links, options)
-    inline.output src
+  @output: (src, links) ->
+    (new InlineLexer(links)).output src
 
   outputLink: (cap, link) ->
     if cap[0][0] isnt "!"
-      "<a href=\"" + escape(link.href) + "\"" + ((if link.title then " title=\"" + escape(link.title) + "\"" else "")) + ">" + @output(cap[1]) + "</a>"
+      "<a href=\"" + u.escape(link.href) + "\"" + ((if link.title then " title=\"" + u.escape(link.title) + "\"" else "")) + ">" + @output(cap[1]) + "</a>"
     else
-      "<img src=\"" + escape(link.href) + "\" alt=\"" + escape(cap[1]) + "\"" + ((if link.title then " title=\"" + escape(link.title) + "\"" else "")) + ">"
+      "<img src=\"" + u.escape(link.href) + "\" alt=\"" + u.escape(cap[1]) + "\"" + ((if link.title then " title=\"" + u.escape(link.title) + "\"" else "")) + ">"
 
   smartypants: (text) ->
-    return text  unless @options['smartypants']
-    text.replace(/--/g, "—").replace(/'([^']*)'/g, "‘$1’").replace(/"([^"]*)"/g, "“$1”").replace /\.{3}/g, "…"
+    # TODO: allow escaping the currency symbols, precompile the regex
+    text
+      .replace(/<-{1,2}>/g, '&harr;')
+      .replace(/-->/g, '&rarr;')
+      .replace(/<--/g, '&larr;')
+      .replace(/--/g, "&mdash;")
+      .replace(/-(?!\S)/g, '&minus;')
+      .replace(/L(?=\d)/g, '&pound;')
+      .replace(/E(?=\d)/g, '&euro;')
+      .replace(/Y(?=\d)/g, '&yen;')
+      .replace(/\([cC]\)/g, '&copy;')
+      .replace(/\([rR]\)/g, '&reg;')
+      .replace(/\s?\((?:TM|tm)\)/g, '&trade;')
+      .replace(/'([^']*)'/g, "&lsquo;$1&rsquo;")
+      .replace(/"([^"]*)"/g, "&ldquo;$1&rdquo;")
+      .replace(/\.{3}/g, "&hellip;")
 
   mangle: (text) ->
     out = ""
     l = text.length
     i = 0
-    ch = undefined
     while i < l
       ch = text.charCodeAt(i)
       ch = "x" + ch.toString(16)  if Math.random() > 0.5
@@ -41,38 +46,39 @@ module.exports = class InlineLexer
   output: (src) ->
     out = ""
     while src
-      if cap = @rules.escape.exec(src)
+      if cap = inline.escape.exec(src)
         src = src.substring(cap[0].length)
         out += cap[1]
         continue
-      if cap = @rules.autolink.exec(src)
+      if cap = inline.autolink.exec(src)
         src = src.substring(cap[0].length)
         if cap[2] is "@"
           text = (if cap[1][6] is ":" then @mangle(cap[1].substring(7)) else @mangle(cap[1]))
           href = @mangle("mailto:") + text
         else
-          text = escape(cap[1])
+          text = u.escape(cap[1])
           href = text
         out += "<a href=\"" + href + "\">" + text + "</a>"
         continue
-      if cap = @rules.url.exec(src)
+      if cap = inline.url.exec(src)
         src = src.substring(cap[0].length)
-        text = escape(cap[1])
+        text = u.escape(cap[1])
         href = text
         out += "<a href=\"" + href + "\">" + text + "</a>"
         continue
-      if cap = @rules.tag.exec(src)
+      if cap = inline.tag.exec(src)
         src = src.substring(cap[0].length)
-        out += (if @options['sanitize'] then escape(cap[0]) else cap[0])
+        # out += (if @options['sanitize'] then u.escape(cap[0]) else cap[0])
+        out += u.escape(cap[0])
         continue
-      if cap = @rules.link.exec(src)
+      if cap = inline.link.exec(src)
         src = src.substring(cap[0].length)
         out += @outputLink(cap,
           href: cap[2]
           title: cap[3]
         )
         continue
-      if (cap = @rules.reflink.exec(src)) or (cap = @rules.nolink.exec(src))
+      if (cap = inline.reflink.exec(src)) or (cap = inline.nolink.exec(src))
         src = src.substring(cap[0].length)
         link = (cap[2] or cap[1]).replace(/\s+/g, " ")
         link = @links[link.toLowerCase()]
@@ -82,29 +88,29 @@ module.exports = class InlineLexer
           continue
         out += @outputLink(cap, link)
         continue
-      if cap = @rules.strong.exec(src)
+      if cap = inline.strong.exec(src)
         src = src.substring(cap[0].length)
         out += "<strong>" + @output(cap[2] or cap[1]) + "</strong>"
         continue
-      if cap = @rules.em.exec(src)
+      if cap = inline.em.exec(src)
         src = src.substring(cap[0].length)
         out += "<em>" + @output(cap[2] or cap[1]) + "</em>"
         continue
-      if cap = @rules.code.exec(src)
+      if cap = inline.code.exec(src)
         src = src.substring(cap[0].length)
-        out += "<code>" + escape(cap[2], true) + "</code>"
+        out += "<code>" + u.escape(cap[2], true) + "</code>"
         continue
-      if cap = @rules.br.exec(src)
+      if cap = inline.br.exec(src)
         src = src.substring(cap[0].length)
-        out += "<br>"
+        out += "<br />"
         continue
-      if cap = @rules.del.exec(src)
+      if cap = inline.del.exec(src)
         src = src.substring(cap[0].length)
         out += "<del>" + @output(cap[1]) + "</del>"
         continue
-      if cap = @rules.text.exec(src)
+      if cap = inline.text.exec(src)
         src = src.substring(cap[0].length)
-        out += escape(@smartypants(cap[0]))
+        out += u.escape(@smartypants(cap[0]))
         continue
       throw new Error("Infinite loop on byte: " + src.charCodeAt(0))  if src
     out

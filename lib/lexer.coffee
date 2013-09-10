@@ -6,20 +6,11 @@ regexNbsp = /\u00a0/g
 regexEmptySpace = /^ +$/gm
 
 module.exports = class Lexer
-  constructor: (@options={}) ->
+  constructor: () ->
     @tokens = []
     @tokens.links = {}
-    @rules = block.normal
 
-    unless @options['noGfm']
-      unless @options['noTables']
-        @rules = block.tables
-      else
-        @rules = block.gfm
-
-  @lex: (src, options) ->
-    lexer = new Lexer(options)
-    lexer.lex src
+  @lex: (src) -> (new Lexer).lex src
 
   lex: (src) ->
     @token src.replace(regexNewline, "\n").replace(regexTab, "    ").replace(regexNbsp, " "), true
@@ -28,19 +19,19 @@ module.exports = class Lexer
     src = src.replace(regexEmptySpace, "")
 
     while src
-      if cap = @rules.newline.exec(src)
+      if cap = block.newline.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push type: "space"  if cap[0].length > 1
 
-      if cap = @rules.code.exec(src)
+      if cap = block.code.exec(src)
         src = src.substring(cap[0].length)
         cap = cap[0].replace(/^ {4}/gm, "")
         @tokens.push
           type: "code"
-          text: (if not @options['pedantic'] then cap.replace(/\n+$/, "") else cap)
+          text: cap.replace(/\n+$/, "")
         continue
 
-      if cap = @rules.fences.exec(src)
+      if cap = block.fences.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
           type: "code"
@@ -48,7 +39,7 @@ module.exports = class Lexer
           text: cap[3]
         continue
 
-      if cap = @rules.heading.exec(src)
+      if cap = block.heading.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
           type: "heading"
@@ -56,7 +47,7 @@ module.exports = class Lexer
           text: cap[2]
         continue
 
-      if top and (cap = @rules.nptable.exec(src))
+      if top and (cap = block.nptable.exec(src))
         src = src.substring(cap[0].length)
         item =
           type: "table"
@@ -82,7 +73,7 @@ module.exports = class Lexer
         @tokens.push item
         continue
 
-      if cap = @rules.lheading.exec(src)
+      if cap = block.lheading.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
           type: "heading"
@@ -90,12 +81,12 @@ module.exports = class Lexer
           text: cap[1]
         continue
 
-      if cap = @rules.hr.exec(src)
+      if cap = block.hr.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push type: "hr"
         continue
 
-      if cap = @rules.blockquote.exec(src)
+      if cap = block.blockquote.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push type: "blockquote_start"
         cap = cap[0].replace(/^ *> ?/gm, "")
@@ -103,13 +94,13 @@ module.exports = class Lexer
         @tokens.push type: "blockquote_end"
         continue
 
-      if cap = @rules.list.exec(src)
+      if cap = block.list.exec(src)
         src = src.substring(cap[0].length)
         bull = cap[2]
         @tokens.push
           type: "list_start"
           ordered: bull.length > 1
-        cap = cap[0].match(@rules.item)
+        cap = cap[0].match(block.item)
         next = false
         l = cap.length
         i = 0
@@ -119,8 +110,8 @@ module.exports = class Lexer
           item = item.replace(/^ *([*+-]|\d+\.) +/, "")
           if ~item.indexOf("\n ")
             space -= item.length
-            item = (if not @options['pedantic'] then item.replace(new RegExp("^ {1," + space + "}", "gm"), "") else item.replace(/^ {1,4}/gm, ""))
-          if @options['smartLists'] and i isnt l - 1
+            item = item.replace(new RegExp("^ {1," + space + "}", "gm"), "")
+          if i isnt l - 1
             b = block.bullet.exec(cap[i + 1])[0]
             if bull isnt b and not (bull.length > 1 and b.length > 1)
               src = cap.slice(i + 1).join("\n") + src
@@ -136,7 +127,7 @@ module.exports = class Lexer
         @tokens.push type: "list_end"
         continue
 
-      if cap = @rules.html.exec(src)
+      if cap = block.html.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
           type: (if @options['sanitize'] then "paragraph" else "html")
@@ -144,14 +135,14 @@ module.exports = class Lexer
           text: cap[0]
         continue
 
-      if top and (cap = @rules.def.exec(src))
+      if top and (cap = block.def.exec(src))
         src = src.substring(cap[0].length)
         @tokens.links[cap[1].toLowerCase()] =
           href: cap[2]
           title: cap[3]
         continue
 
-      if top and (cap = @rules.table.exec(src))
+      if top and (cap = block.table.exec(src))
         src = src.substring(cap[0].length)
         item =
           type: "table"
@@ -177,14 +168,14 @@ module.exports = class Lexer
         @tokens.push item
         continue
 
-      if top and (cap = @rules.paragraph.exec(src))
+      if top and (cap = block.paragraph.exec(src))
         src = src.substring(cap[0].length)
         @tokens.push
           type: "paragraph"
           text: (if cap[1][cap[1].length - 1] is "\n" then cap[1].slice(0, -1) else cap[1])
         continue
 
-      if cap = @rules.text.exec(src)
+      if cap = block.text.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
           type: "text"

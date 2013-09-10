@@ -1,16 +1,25 @@
 {
-    "name": "marked-fork",
-    "version": "0.0.0",
-    "description": "ERROR: No README.md file found!",
-    "main": "index.coffee",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository": "",
-    "author": "",
-    "private": true,
-    "dependencies": {
-    },
-    "DEBUG local dependencies": {
-    }
+  "name": "marked-fork",
+  "version": "0.0.0",
+  "description": "ERROR: No README.md file found!",
+  "main": "index.coffee",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "author": "",
+  "private": true,
+  "dependencies": {},
+  "DEBUG local dependencies": {},
+  "DEBUG local dev dependencies": {
+    "lodash-fork": "0.x"
+  },
+  "devDependencies": {
+    "chai": "1.x",
+    "mocha": "1.x",
+    "glob": "3.x",
+    "sinon": "~1.7.3",
+    "sinon-chai": "~2.4.0",
+    "js-beautify": "~1.4.0"
+  }
 }
