@@ -28,9 +28,12 @@ module.exports = class InlineLexer
       .replace(/\([cC]\)/g, '&copy;')
       .replace(/\([rR]\)/g, '&reg;')
       .replace(/\s?\((?:TM|tm)\)/g, '&trade;')
+      .replace(/(\w)'(\w)/g, "$1&rsquo;$2")
+      .replace(/(\w)"(\w)/g, "$1&rdquo;$2")
       .replace(/'([^']*)'/g, "&lsquo;$1&rsquo;")
       .replace(/"([^"]*)"/g, "&ldquo;$1&rdquo;")
       .replace(/\.{3}/g, "&hellip;")
+      .replace(/\ \ /g, "&nbsp; ")
 
   mangle: (text) ->
     out = ""
@@ -46,10 +49,14 @@ module.exports = class InlineLexer
   output: (src) ->
     out = ""
     while src
+
+      # ESCAPE
       if cap = inline.escape.exec(src)
         src = src.substring(cap[0].length)
         out += cap[1]
         continue
+
+      # AUTOLINK
       if cap = inline.autolink.exec(src)
         src = src.substring(cap[0].length)
         if cap[2] is "@"
@@ -60,16 +67,22 @@ module.exports = class InlineLexer
           href = text
         out += "<a href=\"" + href + "\">" + text + "</a>"
         continue
+
+      # URL
       if cap = inline.url.exec(src)
         src = src.substring(cap[0].length)
         text = _.unsafeHtmlEscape(cap[1],true)
         href = text
         out += "<a href=\"" + href + "\">" + text + "</a>"
         continue
+
+      # TAG
       if cap = inline.tag.exec(src)
         src = src.substring(cap[0].length)
         out += _.unsafeHtmlEscape(cap[0],true) # to keep HTML, don't escape
         continue
+
+      # LINK
       if cap = inline.link.exec(src)
         src = src.substring(cap[0].length)
         out += @outputLink(cap,
@@ -77,6 +90,8 @@ module.exports = class InlineLexer
           title: cap[3]
         )
         continue
+
+      # REFLINK
       if (cap = inline.reflink.exec(src)) or (cap = inline.nolink.exec(src))
         src = src.substring(cap[0].length)
         link = (cap[2] or cap[1]).replace(/\s+/g, " ")
@@ -87,30 +102,43 @@ module.exports = class InlineLexer
           continue
         out += @outputLink(cap, link)
         continue
+
+      # STRONG
       if cap = inline.strong.exec(src)
         src = src.substring(cap[0].length)
         out += "<strong>" + @output(cap[2] or cap[1]) + "</strong>"
         continue
+
+      # EM
       if cap = inline.em.exec(src)
         src = src.substring(cap[0].length)
         out += "<em>" + @output(cap[2] or cap[1]) + "</em>"
         continue
+
+      # CODE
       if cap = inline.code.exec(src)
         src = src.substring(cap[0].length)
         out += "<code>" + _.unsafeHtmlEscape(cap[2]) + "</code>"
         continue
+
+      # BR
       if cap = inline.br.exec(src)
         src = src.substring(cap[0].length)
         out += "<br />"
         continue
+
+      # DEL
       if cap = inline.del.exec(src)
         src = src.substring(cap[0].length)
         out += "<del>" + @output(cap[1]) + "</del>"
         continue
+
+      # TEXT
       if cap = inline.text.exec(src)
         src = src.substring(cap[0].length)
-        out += _.unsafeHtmlEscape(@smartypants(cap[0]))
+        out += _.unsafeHtmlEscape(@smartypants(cap[0]), true)
         continue
+
       throw new Error("Infinite loop on byte: " + src.charCodeAt(0))  if src
     out
 

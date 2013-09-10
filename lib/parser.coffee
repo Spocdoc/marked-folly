@@ -28,15 +28,17 @@ module.exports = class Parser
 
   tok: ->
     switch @token.type
-      when "space"
-        ""
-      when "hr"
-        "<hr />\n"
+      when "space" then ""
+
+      when "hr" then "<hr />\n"
+
       when "heading"
         "<h" + @token.depth + ">" + @inline.output(@token.text) + "</h" + @token.depth + ">\n"
+
       when "code"
         @token.text = _.unsafeHtmlEscape(@token.text)  unless @token.escaped
         "<pre><code" + ((if @token.lang then " class=\"lang-" + @token.lang + "\"" else "")) + ">" + @token.text + "</code></pre>\n"
+
       when "table"
         body = ""
         heading = undefined
@@ -65,27 +67,32 @@ module.exports = class Parser
           i++
         body += "</tbody>\n"
         "<table>\n" + body + "</table>\n"
+
       when "blockquote_start"
         body = ""
         body += @tok()  while @next().type isnt "blockquote_end"
         "<blockquote>\n" + body + "</blockquote>\n"
+
       when "list_start"
         type = (if @token.ordered then "ol" else "ul")
         body = ""
         body += @tok()  while @next().type isnt "list_end"
         "<" + type + ">\n" + body + "</" + type + ">\n"
+
       when "list_item_start"
         body = ""
-        body += (if @token.type is "text" then @parseText() else @tok())  while @next().type isnt "list_item_end"
+        if @token.hasPar
+          body += @tok()  while @next().type isnt "list_item_end"
+        else
+          body += (if @token.type is "text" then @parseText() else @tok())  while @next().type isnt "list_item_end"
         "<li>" + body + "</li>\n"
-      when "loose_item_start"
-        body = ""
-        body += @tok()  while @next().type isnt "list_item_end"
-        "<li>" + body + "</li>\n"
+
       when "html"
         (if not @token.pre then @inline.output(@token.text) else @token.text)
+
       when "paragraph"
         "<p>" + @inline.output(@token.text) + "</p>\n"
+
       when "text"
         "<p>" + @parseText() + "</p>\n"
 

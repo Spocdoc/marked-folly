@@ -9,25 +9,17 @@ lheading = "([^\\n]+)\\n *(=|-){3,} *\\n*"
 blockquote = "( *>[^\n]+(\n[^\n]+)*\n*)+"
 def = """ *\\[([^\\]]+)\\]: *<?([^\\s>]+)>?(?: +["(]([^\\n]+)[")])? *(?:\\n+|$)"""
 fences = """ *(`{3,}|~{3,}) *(\\S+)? *\\n([\\s\\S]+?)\\s*\\1 *(?:\\n+|$)"""
+listStart = "\\x20*#{bullet}\\x20[\\s\\S]+"
 
 module.exports =
-  bullet: ///#{bullet}///
+  listStart: ///^#{listStart}///
 
-  list: ///^
-    (\x20*) (#{bullet}) \x20 [\s\S]+?
-    (?:
-      \n+(?=#{hr})
-      |\n{2,}(?!\x20)(?!\1#{bullet}\x20)\n*
-      |\s*
-    $)
+  item: ///^\n*
+    (\x20*) (#{bullet}) \x20+ ([^\n]*)
+    ((?:
+      \n+\1\x20{1,4}[^\n]*
+    )*)
     ///
-
-  item: ///^
-    (\x20*) (#{bullet}) \x20 [^\n]*
-    (?:
-      \n(?!\1#{bullet}\x20)[^\n]*
-    )*
-    ///gm
 
   hr: ///^#{hr}///
   newline: /^\n+/
@@ -43,7 +35,8 @@ module.exports =
   paragraph: ///^
     (
       (?:
-        [^\n]+\n?(?!
+        [^\n]+\n?
+        (?!
           #{hr}
           |#{heading}
           |#{lheading}
@@ -51,7 +44,8 @@ module.exports =
           |<#{tag}
           |#{def}
           |#{fences.replace '\\1', '\\2'}
-          )
+          |#{listStart}
+        )
       )+
     )\n*
     ///

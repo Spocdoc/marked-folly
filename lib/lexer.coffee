@@ -4,6 +4,12 @@ regexNewline = /\r\n|\r|\u2424/g
 regexTab = /\t/g
 regexNbsp = /\u00a0/g
 regexEmptySpace = /^ +$/gm
+regexIndentation = /\n*(\ *)/
+
+LI_SPACE = 1
+LI_BULLET = 2
+LI_TEXT = 3
+LI_PAR = 4
 
 module.exports = class Lexer
   constructor: () ->
@@ -19,10 +25,13 @@ module.exports = class Lexer
     src = src.replace(regexEmptySpace, "")
 
     while src
+
+      # NEWLINE
       if cap = block.newline.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push type: "space"  if cap[0].length > 1
 
+      # CODE
       if cap = block.code.exec(src)
         src = src.substring(cap[0].length)
         cap = cap[0].replace(/^ {4}/gm, "")
@@ -31,6 +40,7 @@ module.exports = class Lexer
           text: cap.replace(/\n+$/, "")
         continue
 
+      # FENCES
       if cap = block.fences.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
@@ -39,6 +49,7 @@ module.exports = class Lexer
           text: cap[3]
         continue
 
+      # HEADINGS
       if cap = block.heading.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
@@ -47,6 +58,7 @@ module.exports = class Lexer
           text: cap[2]
         continue
 
+      # TABLE
       if top and (cap = block.nptable.exec(src))
         src = src.substring(cap[0].length)
         item =
@@ -73,6 +85,7 @@ module.exports = class Lexer
         @tokens.push item
         continue
 
+      # UNDERLINED HEADING
       if cap = block.lheading.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
@@ -81,11 +94,13 @@ module.exports = class Lexer
           text: cap[1]
         continue
 
+      # HR
       if cap = block.hr.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push type: "hr"
         continue
 
+      # BLOCKQUOTE
       if cap = block.blockquote.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push type: "blockquote_start"
@@ -94,47 +109,42 @@ module.exports = class Lexer
         @tokens.push type: "blockquote_end"
         continue
 
-      if cap = block.list.exec(src)
-        src = src.substring(cap[0].length)
-        bull = cap[2]
-        @tokens.push
-          type: "list_start"
-          ordered: bull.length > 1
-        cap = cap[0].match(block.item)
-        next = false
-        l = cap.length
-        i = 0
-        while i < l
-          item = cap[i]
-          space = item.length
-          item = item.replace(/^ *([*+-]|\d+\.) +/, "")
-          if ~item.indexOf("\n ")
-            space -= item.length
-            item = item.replace(new RegExp("^ {1," + space + "}", "gm"), "")
-          if i isnt l - 1
-            b = block.bullet.exec(cap[i + 1])[0]
-            if bull isnt b and not (bull.length > 1 and b.length > 1)
-              src = cap.slice(i + 1).join("\n") + src
-              i = l - 1
-          loose = next or /\n\n(?!\s*$)/.test(item)
-          if i isnt l - 1
-            next = item[item.length - 1] is "\n"
-            loose = next  unless loose
-          @tokens.push type: (if loose then "loose_item_start" else "list_item_start")
-          @token item, false
+      # LISTS
+      if ~src.search block.listStart
+        bullet = null
+
+        while cap = src.match block.item
+          src = src.substr cap[0].length
+
+          cap[LI_BULLET] = 1 if cap[LI_BULLET].length > 1
+          if cap[LI_BULLET] isnt bullet
+            @tokens.push type: "list_end" if bullet?
+            bullet = cap[LI_BULLET]
+            @tokens.push
+              type: "list_start"
+              ordered: bullet is 1
+
+          @tokens.push type: "list_item_start", hasPar: !!cap[LI_PAR]
+          @token cap[LI_TEXT]
+          if (indent = cap[LI_PAR].match regexIndentation) and indent = indent[1].length
+            indent = maxIndent if indent > maxIndent = cap[LI_SPACE].length + 4
+            cap[LI_PAR] = cap[LI_PAR].replace ///^\x20{#{indent}}///gm, ''
+          @token cap[LI_PAR]
           @tokens.push type: "list_item_end"
-          i++
-        @tokens.push type: "list_end"
+
+        @tokens.push type: "list_end" if bullet?
         continue
 
+      # HTML
       if cap = block.html.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
-          type: (if @options['sanitize'] then "paragraph" else "html")
+          type: "paragraph" # or "html" if not sanitizing
           pre: cap[1] is "pre" or cap[1] is "script"
           text: cap[0]
         continue
 
+      # LINK DEF
       if top and (cap = block.def.exec(src))
         src = src.substring(cap[0].length)
         @tokens.links[cap[1].toLowerCase()] =
@@ -142,6 +152,7 @@ module.exports = class Lexer
           title: cap[3]
         continue
 
+      # TABLE
       if top and (cap = block.table.exec(src))
         src = src.substring(cap[0].length)
         item =
@@ -168,6 +179,7 @@ module.exports = class Lexer
         @tokens.push item
         continue
 
+      # PARAGRAPH
       if top and (cap = block.paragraph.exec(src))
         src = src.substring(cap[0].length)
         @tokens.push
@@ -175,6 +187,7 @@ module.exports = class Lexer
           text: (if cap[1][cap[1].length - 1] is "\n" then cap[1].slice(0, -1) else cap[1])
         continue
 
+      # TEXT
       if cap = block.text.exec(src)
         src = src.substring(cap[0].length)
         @tokens.push
