@@ -1,5 +1,5 @@
 InlineLexer = require './inline_lexer'
-u = require './utils'
+_ = require 'lodash-fork'
 
 module.exports = class Parser
   constructor: () ->
@@ -35,7 +35,7 @@ module.exports = class Parser
       when "heading"
         "<h" + @token.depth + ">" + @inline.output(@token.text) + "</h" + @token.depth + ">\n"
       when "code"
-        @token.text = u.escape(@token.text, true)  unless @token.escaped
+        @token.text = _.unsafeHtmlEscape(@token.text)  unless @token.escaped
         "<pre><code" + ((if @token.lang then " class=\"lang-" + @token.lang + "\"" else "")) + ">" + @token.text + "</code></pre>\n"
       when "table"
         body = ""

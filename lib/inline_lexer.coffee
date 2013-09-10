@@ -1,5 +1,5 @@
 inline = require './inline'
-u = require './utils'
+_ = require 'lodash-fork'
 
 module.exports = class InlineLexer
   constructor: (@links) ->
@@ -10,9 +10,9 @@ module.exports = class InlineLexer
 
   outputLink: (cap, link) ->
     if cap[0][0] isnt "!"
-      "<a href=\"" + u.escape(link.href) + "\"" + ((if link.title then " title=\"" + u.escape(link.title) + "\"" else "")) + ">" + @output(cap[1]) + "</a>"
+      "<a href=\"" + _.unsafeHtmlEscape(link.href,true) + "\"" + ((if link.title then " title=\"" + _.unsafeHtmlEscape(link.title,true) + "\"" else "")) + ">" + @output(cap[1]) + "</a>"
     else
-      "<img src=\"" + u.escape(link.href) + "\" alt=\"" + u.escape(cap[1]) + "\"" + ((if link.title then " title=\"" + u.escape(link.title) + "\"" else "")) + ">"
+      "<img src=\"" + _.unsafeHtmlEscape(link.href,true) + "\" alt=\"" + _.unsafeHtmlEscape(cap[1],true) + "\"" + ((if link.title then " title=\"" + _.unsafeHtmlEscape(link.title,true) + "\"" else "")) + ">"
 
   smartypants: (text) ->
     # TODO: allow escaping the currency symbols, precompile the regex
@@ -56,20 +56,19 @@ module.exports = class InlineLexer
           text = (if cap[1][6] is ":" then @mangle(cap[1].substring(7)) else @mangle(cap[1]))
           href = @mangle("mailto:") + text
         else
-          text = u.escape(cap[1])
+          text = _.unsafeHtmlEscape(cap[1],true)
           href = text
         out += "<a href=\"" + href + "\">" + text + "</a>"
         continue
       if cap = inline.url.exec(src)
         src = src.substring(cap[0].length)
-        text = u.escape(cap[1])
+        text = _.unsafeHtmlEscape(cap[1],true)
         href = text
         out += "<a href=\"" + href + "\">" + text + "</a>"
         continue
       if cap = inline.tag.exec(src)
         src = src.substring(cap[0].length)
-        # out += (if @options['sanitize'] then u.escape(cap[0]) else cap[0])
-        out += u.escape(cap[0])
+        out += _.unsafeHtmlEscape(cap[0],true) # to keep HTML, don't escape
         continue
       if cap = inline.link.exec(src)
         src = src.substring(cap[0].length)
@@ -98,7 +97,7 @@ module.exports = class InlineLexer
         continue
       if cap = inline.code.exec(src)
         src = src.substring(cap[0].length)
-        out += "<code>" + u.escape(cap[2], true) + "</code>"
+        out += "<code>" + _.unsafeHtmlEscape(cap[2]) + "</code>"
         continue
       if cap = inline.br.exec(src)
         src = src.substring(cap[0].length)
@@ -110,7 +109,7 @@ module.exports = class InlineLexer
         continue
       if cap = inline.text.exec(src)
         src = src.substring(cap[0].length)
-        out += u.escape(@smartypants(cap[0]))
+        out += _.unsafeHtmlEscape(@smartypants(cap[0]))
         continue
       throw new Error("Infinite loop on byte: " + src.charCodeAt(0))  if src
     out
