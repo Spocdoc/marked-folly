@@ -11,6 +11,10 @@ LI_BULLET = 2
 LI_TEXT = 3
 LI_PAR = 4
 
+FENCE_LANG = 2
+FENCE_TITLE = 3
+FENCE_CODE = 4
+
 module.exports = class Lexer
   constructor: () ->
     @tokens = []
@@ -45,8 +49,8 @@ module.exports = class Lexer
         src = src.substring(cap[0].length)
         @tokens.push
           type: "code"
-          lang: cap[2]
-          text: cap[3]
+          lang: cap[FENCE_LANG]
+          text: cap[FENCE_CODE]
         continue
 
       # HEADINGS

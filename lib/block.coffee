@@ -1,4 +1,5 @@
-bullet = "[*+-]"
+bullet = "(?:[*+-]|\\d+\\.)"
+bulletOnly = "[*+-]"
 number = "\\d+\\."
 hr = "( *[-*_]){3,} *(?:\\n+|$)"
 tag = "(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\\b)\\w+(?!:/|@)\\b"
@@ -9,12 +10,12 @@ heading = " *(\#{1,6}) *([^\\n]+?) *#* *(?:\\n+|$)"
 lheading = "([^\\n]+)\\n *(=|-){3,} *\\n*"
 blockquote = "( *>[^\n]+(\n[^\n]+)*\n*)+"
 def = """ *\\[([^\\]]+)\\]: *<?([^\\s>]+)>?(?: +["(]([^\\n]+)[")])? *(?:\\n+|$)"""
-fences = """ *(`{3,}|~{3,}) *(\\S+)? *\\n([\\s\\S]+?)\\s*\\1 *(?:\\n+|$)"""
+fences = """ *(`{3,}|~{3,}) *(\\S+)? *(?:\\[([^\n]*)\\])?\\n([\\s\\S]+?)\\s*\\1 *(?:\\n+|$)"""
 listStart = "\\x20*#{bullet}\\x20[\\s\\S]+"
 
 module.exports =
   ul: ///^
-    (\x20*) (#{bullet}) \x20 [\s\S]+?
+    (\x20*) #{bulletOnly} \x20 [\s\S]+?
     (?:
       \n(?!(?:\1\x20|\1\2|\n))
       |$
@@ -32,7 +33,7 @@ module.exports =
   item: ///^\n*
     (\x20*) (#{bullet}) \x20+ ([^\n]*)
     ((?:
-      \n+\1\x20{1,4}[^\n]*
+      \n+#{bullet}\x20{1,4}[^\n]*
     )*)
     ///gm
 
