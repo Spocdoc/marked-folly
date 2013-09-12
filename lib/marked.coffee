@@ -27,9 +27,15 @@ TABLE_ALIGN = 3
 TABLE_ROWS = 4
 TABLE_CAP_BOT = 5
 
-class Marked
+module.exports = class Marked
+
+  # WARNING: may throw
   constructor: (src) ->
-    @html = @token defs(utils.normalize(src), @footnotes={}, @citations={}, @links={})
+    return new Marked src unless this instanceof Marked
+    src ||= ''
+    @src = utils.normalize(src)
+    @offsets = utils.linePositions @src
+    @html = @token defs(@src, @footnotes={}, @citations={}, @links={})
 
   toString: -> @html
 
@@ -250,8 +256,3 @@ class Marked
       throw new Error("Infinite loop on byte: " + src.charCodeAt(0))  if src
 
     dst
-
-# WARN: may throw
-module.exports = marked = (src) ->
-  return src unless src
-  new Marked src
