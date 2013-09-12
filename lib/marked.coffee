@@ -33,11 +33,12 @@ class Marked
 
   toString: -> @html
 
-  inlineLink: (cap, href) ->
+  inlineLink: (cap, link) ->
+    title = if link.title then " title=\"#{_.unsafeHtmlEscape(link.title)}\"" else ""
     if cap[0].charAt(0) isnt "!"
-      "<a href=\"#{_.unsafeHtmlEscape(href,true)}\">#{@inline(cap[1])}</a>"
+      "<a href=\"#{_.unsafeHtmlEscape(link.href,true)}\"#{title}>#{@inline(cap[1])}</a>"
     else
-      "<img src=\"#{_.unsafeHtmlEscape(href,true)}\" alt=\"#{_.unsafeHtmlEscape(cap[1],true)}\" />"
+      "<img src=\"#{_.unsafeHtmlEscape(link.href,true)}\" alt=\"#{_.unsafeHtmlEscape(cap[1],true)}\" #{title} />"
 
   inline: (src) ->
     dst = ""
@@ -78,16 +79,18 @@ class Marked
       # LINK
       if cap = inline.link.exec(src)
         src = src.substring(cap[0].length)
-        dst += @inlineLink cap, cap[2]
+        dst += @inlineLink cap,
+          href: cap[2]
+          title: cap[3]
         continue
 
       # REFLINK
       if (cap = inline.reflink.exec(src)) or (cap = inline.nolink.exec(src))
         src = src.substring(cap[0].length)
         link = (cap[2] or cap[1]).replace(/\s+/g, " ")
-        link = @links[link]
-        if not link or not link.href
-          dst += cap[0][0]
+        link = @links[link.toLowerCase()]
+        unless link and link.href
+          dst += cap[0].charAt(0)
           src = cap[0].substring(1) + src
           continue
         dst += @inlineLink(cap, link)

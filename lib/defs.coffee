@@ -1,4 +1,6 @@
 def = ///^
+  \x20{0,3}
+
   \[([^\]]+)\]: # ref name
 
   \x20*
@@ -27,10 +29,13 @@ deflink = ///^
 
 module.exports = (src, footnotes, citations, links) ->
   src.replace def, (matched, name, text) ->
+    name = name.toLowerCase()
     switch name.charAt(0)
       when '#' then citations[name] = text
       when '^' then footnotes[name] = text
       else
         if matched = deflink.exec text
-          links[name] = matched[1]
+          links[name] =
+            href: matched[1]
+            title: matched[2]
     ""

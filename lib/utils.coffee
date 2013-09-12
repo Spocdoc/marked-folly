@@ -21,17 +21,15 @@ module.exports =
     out
 
   smartypants: (text) ->
-    return text # TODO DEBUG
-    # TODO: allow escaping the currency symbols, precompile the regex
     text
-      .replace(/<-{1,2}>/g, '&harr;')
+      .replace(/<--?>/g, '&harr;')
       .replace(/-->/g, '&rarr;')
       .replace(/<--/g, '&larr;')
       .replace(/--/g, "&mdash;")
       .replace(/-(?!\S)/g, '&minus;')
-      .replace(/L(?=\d)/g, '&pound;')
-      .replace(/E(?=\d)/g, '&euro;')
-      .replace(/Y(?=\d)/g, '&yen;')
+      .replace(/\bL(?=\d)/g, '&pound;')
+      .replace(/\bE(?=\d)/g, '&euro;')
+      .replace(/\bY(?=\d)/g, '&yen;')
       .replace(/\([cC]\)/g, '&copy;')
       .replace(/\([rR]\)/g, '&reg;')
       .replace(/\s?\((?:TM|tm)\)/g, '&trade;')
