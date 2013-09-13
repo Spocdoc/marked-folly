@@ -30,12 +30,11 @@ TABLE_CAP_BOT = 5
 module.exports = class Marked
 
   # WARNING: may throw
-  constructor: (src) ->
+  constructor: (src='') ->
     return new Marked src unless this instanceof Marked
-    src ||= ''
     @src = utils.normalize(src)
     @offsets = utils.linePositions @src
-    @html = @token defs(@src, @footnotes={}, @citations={}, @links={})
+    @html = @token defs(@src, @footnotes={}, @citations={}, @links={}), 0, 0
 
   toString: -> @html
 
@@ -46,7 +45,7 @@ module.exports = class Marked
     else
       "<img src=\"#{_.unsafeHtmlEscape(link.href,true)}\" alt=\"#{_.unsafeHtmlEscape(cap[1],true)}\" #{title} />"
 
-  inline: (src) ->
+  inline: (src, line, offset) ->
     dst = ""
     while src
 
@@ -143,7 +142,7 @@ module.exports = class Marked
 
 
 
-  token: (src) ->
+  token: (src, srcLine, srcOffset) ->
     dst = ''
     src = src.replace(regexEmptySpace, "")
     arr = undefined
@@ -153,11 +152,20 @@ module.exports = class Marked
       # NEWLINE
       if cap = block.newline.exec(src)
         src = src.substring(cap[0].length)
+        srcLine += cap[0].length
 
       # CODE
       if cap = block.code.exec(src)
         src = src.substring(cap[0].length)
-        dst += "<pre><code>#{_.unsafeHtmlEscape cap[0].replace(/^ {4}/gm, "").replace(/\n+$/, "")}</code></pre>\n"
+        dst += "<pre data-md-offset=\"#{@offsets[srcLine]}\"><code data-md-offset=\"#{@offsets[srcLine]}\">"
+        for line in _.unsafeHtmlEscape(cap[0]).split '\n'
+          if line
+            dst += "<span data-md-offset=\"#{4 + @offsets[srcLine]}\">#{line.substr(4)}\n</span>"
+          else
+            dst += "<span data-md-offset=\"#{@offsets[srcLine]}\">\n</span>"
+          ++srcLine
+        --srcLine
+        dst += "</code></pre>\n"
         continue
 
       # FENCES
@@ -250,7 +258,8 @@ module.exports = class Marked
       # PARAGRAPH
       if cap = block.paragraph.exec(src)
         src = src.substring(cap[0].length)
-        dst += "<p>#{@inline (if cap[1][cap[1].length - 1] is "\n" then cap[1].slice(0, -1) else cap[1])}</p>\n"
+        dst += "<p data-md-offset=\"#{@offsets[srcLine]}\">#{@inline (if cap[1][cap[1].length - 1] is "\n" then cap[1].slice(0, -1) else cap[1])}</p>\n"
+        srcLine += utils.numLines(cap[0])-1
         continue
 
       throw new Error("Infinite loop on byte: " + src.charCodeAt(0))  if src

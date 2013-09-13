@@ -2,10 +2,6 @@ bullet = "(?:[*+-]|\\d+\\.)"
 bulletOnly = "[*+-]"
 number = "\\d+\\."
 hr = "( *[-*_]){3,} *(?:\\n+|$)"
-tag = "(?!(?:a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)\\b)\\w+(?!:/|@)\\b"
-comment = "<!--[\\s\\S]*?-->"
-closed = "<(#{tag})[\\s\\S]+?<\\/\\1>"
-closing = """<#{tag}(?:"[^"]*"|'[^']*'|[^'">])*?>"""
 heading = " *(\#{1,6}) *([^\\n]+?) *#* *(?:\\n+|$)"
 lheading = "([^\\n]+)\\n *(=|-){3,} *\\n*"
 blockquote = "( *>[^\n]+(\n[^\n]+)*\n*)+"
@@ -57,7 +53,6 @@ module.exports =
           |#{heading}
           |#{lheading}
           |#{blockquote}
-          |<#{tag}
           |#{def}
           |#{fences.replace '\\1', '\\2'}
           |#{listStart}
@@ -66,14 +61,7 @@ module.exports =
     )\n*
     ///
 
-  code: /^( {4}[^\n]+\n*)+/
-
-  html: ///^
-    \x20*
-    (?:#{comment}|#{closed}|#{closing})
-    \x20*
-    (?:\n{2,}|\s*$)
-    ///
+  code: /^(\n* {4}[^\n]+)+/
 
   table: ///^\x20*
     # title

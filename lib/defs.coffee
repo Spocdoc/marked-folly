@@ -8,8 +8,7 @@ def = ///^
   ([\S\s]+?)
 
   \x20*
-  (?:\n+|$) # end of line
-
+  $
 ///gm
 
 deflink = ///^
@@ -38,4 +37,4 @@ module.exports = (src, footnotes, citations, links) ->
           links[name] =
             href: matched[1]
             title: matched[2]
-    ""
+    "\n"
